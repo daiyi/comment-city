@@ -1,0 +1,11 @@
+{
+  "name": "comment-pr",
+  "version": "0.0.1",
+  "description": "endpoint for static site comments",
+  "main": "api/index.js",
+  "author": "daiyi",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^2.6.0"
+  }
+}
