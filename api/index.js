@@ -2,7 +2,7 @@ const fetch = require("node-fetch");
 
 module.exports = async (req, res) => {
   const { body } = req;
-  const { name: commenter, color, comment, path } = body;
+  const { name: commenter, url, color, comment, path } = body;
 
   // Github personal access token
   // https://github.com/settings/tokens
@@ -39,6 +39,7 @@ module.exports = async (req, res) => {
   const updatedComment = `${file}
 - name: ${commenter}
   date: ${new Date().toLocaleDateString()}
+  url: ${url}
   color: ${color}
   comment: |
     ${comment}
