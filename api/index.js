@@ -86,7 +86,9 @@ module.exports = async (req, res) => {
 
 Thanks for writing a comment. It will appear on the site a minute after it is approved.
 
-If you have a github account you can get notified when your comment is merged by clicking "Subscribe" on the right.`;
+If you have a github account you can get notified when your comment is merged by clicking "Subscribe" on the right.
+
+Have a nice day \\o/`;
 
   // Open pull request with new branch
   const pull = await fetch(pullsEndpoint, {
