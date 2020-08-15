@@ -2,8 +2,7 @@ const fetch = require("node-fetch");
 
 module.exports = async (req, res) => {
   const { body } = req;
-  const { name: commenter, date, color, comment, path } = body;
-  console.log("[");
+  const { name: commenter, color, comment, path } = body;
 
   // Github personal access token
   // https://github.com/settings/tokens
@@ -29,9 +28,8 @@ module.exports = async (req, res) => {
         headers,
       }).then((res) => res.text())
     );
-    console.log("$existingFile: ", existingFile);
   } catch (e) {
-    console.log("$ERROR!!!", e);
+    console.log(e);
   }
 
   // unencode file contents into human readable
@@ -40,27 +38,23 @@ module.exports = async (req, res) => {
   // awkwardly append yaml lol
   const updatedComment = `${file}
 - name: ${commenter}
-  date: ${new Date.toLocaleDateString()}
+  date: ${new Date().toLocaleDateString()}
   color: ${color}
   comment: |
     ${comment}
   `;
-  console.log("$updatedComment: ", updatedComment);
 
   const updatedCommentEncoded = Buffer.from(updatedComment, "utf-8").toString(
     "base64"
   );
 
-  // TODO
   const branchName = `comment-${Date.now()}`;
-  // const branchName = "potato";
 
   // get latest commit to make branch
   const commits = await fetch(`${commitsEndpoint}?per_page=1`, {
     method: "GET",
     headers,
   }).then((res) => res.json());
-  console.log("$commits: ", commits);
 
   // create new reference aka branch
   const branch = await fetch(referenceEndpoint, {
@@ -68,11 +62,10 @@ module.exports = async (req, res) => {
     headers,
     body: JSON.stringify({
       accept: "application/vnd.github.v3+json",
-      sha: commits[0].sha, // TODO
+      sha: commits[0].sha,
       ref: `refs/heads/${branchName}`,
     }),
   }).then((res) => res.text());
-  console.log("$branch: ", branch);
 
   const pullTitle = `Comment by ${commenter} on ${new Date().toLocaleString()}`;
 
@@ -85,10 +78,15 @@ module.exports = async (req, res) => {
       message: pullTitle,
       content: updatedCommentEncoded,
       sha: existingFile.sha,
-      branch: branchName, // TODO use from branch
+      branch: branchName,
     }),
   }).then((res) => res.text());
-  console.log("$commit: ", commit);
+
+  const pullMessage = `Hi ${commenter}!
+
+Thanks for writing a comment. It will appear on the site a minute after it is approved.
+
+If you have a github account you can get notified when your comment is merged by clicking "Subscribe" on the right.`;
 
   // Open pull request with new branch
   const pull = await fetch(pullsEndpoint, {
@@ -99,13 +97,11 @@ module.exports = async (req, res) => {
       title: pullTitle,
       head: branchName,
       base: "master",
-      body: `${commenter} would like to add a comment to ${path}: 
-${comment}`,
+      body: pullMessage,
       maintainer_can_modify: true,
     }),
-  }).then((res) => res.text());
-  console.log("$pull: ", pull);
+  }).then((res) => res.json());
 
-  console.log("]");
-  res.send("done");
+  res.writeHead(302, { location: pull.html_url });
+  res.end();
 };
