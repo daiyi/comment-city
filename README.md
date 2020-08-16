@@ -14,13 +14,16 @@ I host this function on [vercel](https://vercel.com/docs/serverless-functions/in
 
 1. install the [vercel cli](https://vercel.com/download), then run `vercel` once to log in.
 2. set up environment variables in the project: 
-  - `GITHUB_AUTH_TOKEN`, create a new gitub [personal access token](https://github.com/settings/tokens/new)
-  - `GITHUB_USER`, your github username
-  - `GITHUB_REPO`, the repository name of your static site.
-3. run `vercel dev` to host the function locally. Vercel has separate dev environment variables and production environment variables, so if you use vercel's local development feature (which is great, highly recommended) you will need to set the environment variables in both places. 
+    - `GITHUB_AUTH_TOKEN`, create a new gitub [personal access token](https://github.com/settings/tokens/new)
+    - `GITHUB_USER`, your github username
+    - `GITHUB_REPO`, the repository name of your static site.
+3. run `vercel dev` from the root folder to host the function locally. Vercel has separate dev environment variables and production environment variables, so if you use vercel's local development feature (which is great, highly recommended) you will need to set the environment variables in both places.
+    - download development local variables by running `vercel env pull`
+    
+You might need to restructure the files if you use a different cloud provider. 
 
 ### deploy
 
-I host this function on vercel, the deploy command is: `vercel`.
+I host this function on vercel. To deploy, run from the root folder: `vercel --prod`. (you will have to set up the project the first time).
 
 You can set up your vercel project to automatically deploy with every github commit (it's great!)
