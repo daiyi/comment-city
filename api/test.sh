@@ -1,4 +1,4 @@
-curl -X POST "https://comment-pr.vercel.app/api" \
+curl -X POST "http://localhost:3000/api" \                                                                        ~/nets/comment-pr
   -H "Content-Type: application/json" \
   -d '{
     "name": "mica",
