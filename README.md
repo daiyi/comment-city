@@ -22,6 +22,8 @@ I host this function on [vercel](https://vercel.com/docs/serverless-functions/in
     
 You might need to restructure the files if you use a different cloud provider. 
 
+I tested the script by running `curl` against the endpoint, I saved it in `api/test.sh`.
+
 ### deploy
 
 I host this function on vercel. To deploy, run from the root folder: `vercel --prod`. (you will have to set up the project the first time).
