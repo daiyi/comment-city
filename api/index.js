@@ -2,40 +2,41 @@ const fetch = require("node-fetch");
 
 module.exports = async (req, res) => {
   const { body } = req;
+  // form fields should include:
+  // `name`: commenter name
+  // `url`: commenter's social url (or personal site)
+  // `color`: my blog lets people choose an accent color for their comment :)
+  // `comment`: required. the comment itself
+  // `path`: required. the path of the comment file to append comment to.
   const { name: commenter, url, color, comment, path } = body;
 
-  // Github personal access token
-  // https://github.com/settings/tokens
-  const token = process.env.GITHUB_AUTH_TOKEN;
+  // Don't forget to set up environmental variables in your lambda function service
   const owner = process.env.GITHUB_USER;
   const repo = process.env.GITHUB_REPO;
-  const contentEndpoint = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`; // path = comments.yaml
+  // Github personal access token https://github.com/settings/tokens
+  const token = process.env.GITHUB_AUTH_TOKEN;
+
+  const contentEndpoint = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
   const referenceEndpoint = `https://api.github.com/repos/${owner}/${repo}/git/refs`;
   const pullsEndpoint = `https://api.github.com/repos/${owner}/${repo}/pulls`;
   const commitsEndpoint = `https://api.github.com/repos/${owner}/${repo}/commits`;
 
+  // Authentication header for Github API.
   const headers = {
     authorization: `token ${token}`,
   };
 
-  // Use the Contents API from GitHub
-  // https://developer.github.com/v3/repos/contents/#get-contents
-  let existingFile;
-  try {
-    existingFile = JSON.parse(
-      await fetch(contentEndpoint, {
-        method: "GET",
-        headers,
-      }).then((res) => res.text())
-    );
-  } catch (e) {
-    console.log(e);
-  }
+  // API call #1: Fetch the comments file from the static site repository
+  const existingFile = await fetch(contentEndpoint, {
+    method: "GET",
+    headers,
+  }).then((res) => res.json());
 
-  // unencode file contents into human readable
-  let file = Buffer.from(existingFile.content, "base64").toString("utf-8");
+  // Github sends files in base64, probably to make it smaller. Unencode it here
+  const file = Buffer.from(existingFile.content, "base64").toString("utf-8");
 
-  // awkwardly append yaml lol
+  // Append new comment to comments file.
+  // My static site reads comments in yaml format.
   const updatedComment = `${file}
 - name: ${commenter}
   date: ${new Date().toLocaleDateString()}
@@ -45,19 +46,20 @@ module.exports = async (req, res) => {
     ${comment}
   `;
 
+  // Reencode comments file to base64
   const updatedCommentEncoded = Buffer.from(updatedComment, "utf-8").toString(
     "base64"
   );
 
   const branchName = `comment-${Date.now()}`;
 
-  // get latest commit to make branch
+  // API call #2) get latest commit on static site repo
   const commits = await fetch(`${commitsEndpoint}?per_page=1`, {
     method: "GET",
     headers,
   }).then((res) => res.json());
 
-  // create new reference aka branch
+  // API call #3) use latest commit SHA to create a new reference (aka branch) on the static site
   const branch = await fetch(referenceEndpoint, {
     method: "POST",
     headers,
@@ -66,11 +68,11 @@ module.exports = async (req, res) => {
       sha: commits[0].sha,
       ref: `refs/heads/${branchName}`,
     }),
-  }).then((res) => res.text());
+  });
 
   const pullTitle = `Comment by ${commenter} on ${new Date().toLocaleString()}`;
 
-  // Use the Contents API to create a commit on new branch
+  // API call #4) create a commit on that new branch we just made
   const commit = await fetch(contentEndpoint, {
     method: "PUT",
     headers,
@@ -81,17 +83,17 @@ module.exports = async (req, res) => {
       sha: existingFile.sha,
       branch: branchName,
     }),
-  }).then((res) => res.text());
+  });
 
   const pullMessage = `Hi ${commenter}!
 
-Thanks for writing a comment. It will appear on the site a minute after it is approved.
+  Thanks for writing a comment. It will appear on the site a minute after it is approved.
 
-If you have a github account you can get notified when your comment is merged by clicking "Subscribe" on the right.
+  If you have a github account you can get notified when your comment is merged by clicking "Subscribe" on the right.
 
-Have a nice day \\o/`;
+  Have a nice day \\o/`;
 
-  // Open pull request with new branch
+  // API call #5) open a pull request with the new branch
   const pull = await fetch(pullsEndpoint, {
     method: "POST",
     headers,
@@ -105,6 +107,8 @@ Have a nice day \\o/`;
     }),
   }).then((res) => res.json());
 
+  // Redirect user to new github pull request page after submitting comment.
+  // The experience could be improved with some client-side javascript.
   res.writeHead(302, { location: pull.html_url });
   res.end();
 };
